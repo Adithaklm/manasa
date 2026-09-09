@@ -3,6 +3,7 @@ import json
 import os
 import re
 import shlex
+import logging
 import time
 from pathlib import Path
 from aiohttp import web
@@ -192,8 +193,11 @@ async def callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = q.from_user.id
     s = sessions.get(uid)
     if not s or not s.get("input"):
-        await q.edit_message_text("Upload a video first.")
-        return
+    try:
+        await q.answer("Please upload a video first.", show_alert=True)
+    except Exception:
+        pass
+    return
 
     action = q.data
     settings = s["settings"]
@@ -417,9 +421,12 @@ async def run_job(query, context, uid):
                 pass
         sessions.pop(uid, None)
         jobs.pop(uid, None)
-
+async def error_handler(update, context):
+    logging.exception("Telegram update error", exc_info=context.error)
+    
 def build_app():
     builder = Application.builder().token(BOT_TOKEN)
+    app.add_error_handler(error_handler)
     if BASE_URL:
         builder = builder.base_url(BASE_URL)
     if FILE_BASE_URL:

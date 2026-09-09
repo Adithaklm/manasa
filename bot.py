@@ -5,6 +5,7 @@ import re
 import shlex
 import time
 from pathlib import Path
+from aiohttp import web
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.constants import ChatAction
@@ -110,6 +111,21 @@ def settings_text(s):
         f"Extra params: `{s['extra'] or 'none'}`\n\n"
         "Upload a video first, then adjust these settings."
     )
+
+async def health_handler(request):
+    return web.Response(text="OK")
+
+async def start_health_server():
+    app = web.Application()
+    app.router.add_get("/", health_handler)
+    app.router.add_get("/health", health_handler)
+
+    runner = web.AppRunner(app)
+    await runner.setup()
+
+    port = int(os.environ.get("PORT", "8080"))
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not allowed(update):
@@ -417,4 +433,12 @@ def build_app():
     return app
 
 if __name__ == "__main__":
+    import threading
+    import asyncio
+
+    def health():
+        asyncio.run(start_health_server())
+
+    threading.Thread(target=health, daemon=True).start()
+
     build_app().run_polling(allowed_updates=Update.ALL_TYPES)

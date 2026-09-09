@@ -1,3 +1,0 @@
-python-telegram-bot>=22,<23
-imageio-ffmpeg>=0.6
-aiohttp>=3.9,<4
